@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useId } from 'react';
 
-// List of Indian States and Union Territories for the State dropdown
+// List of Indian States and Union Territories for the State dropdown (36 total)
 const INDIAN_STATES_AND_UTS = [
   'Andhra Pradesh',
   'Arunachal Pradesh',
@@ -57,137 +57,235 @@ const INITIAL_FORM_DATA = {
 };
 
 /**
+ * Calculates exact age based on birth date string (YYYY-MM-DD).
+ * Accounts for leap years, exact day, and month boundary checks.
+ */
+export const calculateAge = (dobString) => {
+  if (!dobString) return null;
+  const birthDate = new Date(dobString);
+  if (isNaN(birthDate.getTime())) return null;
+
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  const dayDiff = today.getDate() - birthDate.getDate();
+
+  // If the birthday hasn't occurred yet this year, decrement age
+  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+    age--;
+  }
+  return age;
+};
+
+/**
+ * Computes maximum allowable DOB (YYYY-MM-DD) for 18+ applicants.
+ * Used for the native HTML date picker `max` attribute.
+ */
+export const getMaxAllowedDobString = () => {
+  const today = new Date();
+  const min18Date = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
+  return min18Date.toISOString().split('T')[0];
+};
+
+/**
  * BankAccountForm Component
  * Manages the state, validation, submission, and reset for the account opening entry form.
+ * Adheres to strict enterprise standards:
+ * - 18+ age boundary validation
+ * - Positive numerical deposit validation & parsing
+ * - Indian 10-digit mobile number validation and privacy masking
+ * - Sanitization of leading/trailing whitespace
+ * - Full semantic HTML, ARIA labels, error alerts, and autofocus on error
  */
 function BankAccountForm() {
-  // State for form input values (controlled inputs)
+  // Controlled form state
   const [formData, setFormData] = useState(INITIAL_FORM_DATA);
 
-  // State for storing validation error messages for each field
+  // Field validation error state
   const [errors, setErrors] = useState({});
 
-  // State for storing the successfully submitted data snapshot
+  // Snapshot of submitted data for confirmation summary
   const [submittedData, setSubmittedData] = useState(null);
 
-  // State to track if the form was successfully submitted
+  // Submission status flag
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  // Calculate today's date in YYYY-MM-DD format to prevent future DOB selection
-  const todayDateString = new Date().toISOString().split('T')[0];
+  // Computed max date for HTML input (18 years ago)
+  const maxAllowedDob = getMaxAllowedDobString();
+
+  // Current calculated age of applicant for live feedback
+  const currentAge = calculateAge(formData.dob);
 
   /**
    * Validates a single field by name and value.
    * Returns an error message string if invalid, or empty string "" if valid.
    */
-  const validateField = (name, value) => {
+  const validateField = (name, rawValue) => {
+    const value = typeof rawValue === 'string' ? rawValue.trim() : rawValue;
+
     switch (name) {
-      case 'fullName':
-        if (!value.trim()) {
+      case 'fullName': {
+        if (!value) {
           return 'Full name is required.';
         }
-        if (value.trim().length < 3) {
+        if (value.length < 3) {
           return 'Full name must be at least 3 characters long.';
         }
-        if (!/^[a-zA-Z\s.'-]+$/.test(value.trim())) {
-          return 'Full name should only contain letters, spaces, and dots.';
+        if (value.length > 70) {
+          return 'Full name cannot exceed 70 characters.';
         }
-        return '';
-
-      case 'dob': {
-        if (!value) {
-          return 'Date of birth is required.';
-        }
-        const selectedDate = new Date(value);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        if (selectedDate > today) {
-          return 'Date of birth cannot be in the future.';
-        }
-        if (selectedDate.getFullYear() < 1900) {
-          return 'Please enter a realistic date of birth.';
+        if (!/^[a-zA-Z\s.'-]+$/.test(value)) {
+          return 'Full name should only contain letters, spaces, dots, hyphens, and apostrophes.';
         }
         return '';
       }
 
-      case 'gender':
-        if (!value) {
+      case 'dob': {
+        if (!rawValue) {
+          return 'Date of birth is required.';
+        }
+        const selectedDate = new Date(rawValue);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (isNaN(selectedDate.getTime())) {
+          return 'Please enter a valid date of birth.';
+        }
+
+        // Boundary Check: Reject future dates
+        if (selectedDate > today) {
+          return 'Date of birth cannot be in the future.';
+        }
+
+        // Boundary Check: Reject today's date
+        if (selectedDate.getTime() === today.getTime()) {
+          return 'Date of birth cannot be today.';
+        }
+
+        // Boundary Check: Strict 18+ age restriction
+        const age = calculateAge(rawValue);
+        if (age === null || isNaN(age)) {
+          return 'Please enter a valid date of birth.';
+        }
+        if (age < 18) {
+          return `Applicant must be at least 18 years old to open an account (Current age: ${age < 0 ? 0 : age} years).`;
+        }
+        if (age > 120 || selectedDate.getFullYear() < 1900) {
+          return 'Please enter a realistic date of birth (maximum age is 120 years).';
+        }
+        return '';
+      }
+
+      case 'gender': {
+        if (!rawValue) {
           return 'Please select a gender.';
         }
+        const validGenders = ['Male', 'Female', 'Other', 'Prefer not to say'];
+        if (!validGenders.includes(rawValue)) {
+          return 'Please select a valid gender option.';
+        }
         return '';
+      }
 
-      case 'mobileNumber':
-        if (!value.trim()) {
+      case 'mobileNumber': {
+        if (!value) {
           return 'Mobile number is required.';
         }
-        // Validates standard 10-digit Indian mobile numbers (starts with 6, 7, 8, or 9)
-        if (!/^[6-9]\d{9}$/.test(value.trim())) {
-          return 'Enter a valid 10-digit Indian mobile number (e.g., 9876543210).';
+        // Strict Indian 10-digit mobile number format starting with 6, 7, 8, or 9
+        if (!/^[6-9]\d{9}$/.test(value)) {
+          return 'Enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9 (e.g., 9876543210).';
         }
         return '';
+      }
 
       case 'email': {
-        if (!value.trim()) {
+        if (!value) {
           return 'Email address is required.';
         }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-        if (!emailRegex.test(value.trim())) {
+        // RFC 5322 compliant standard email regex
+        const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+        if (!emailRegex.test(value)) {
           return 'Enter a valid email address (e.g., name@example.com).';
         }
         return '';
       }
 
-      case 'streetAddress':
-        if (!value.trim()) {
+      case 'streetAddress': {
+        if (!value) {
           return 'Door number and street are required.';
         }
-        if (value.trim().length < 4) {
-          return 'Please provide a complete street address.';
+        if (value.length < 5) {
+          return 'Please provide a complete street address (minimum 5 characters).';
         }
         return '';
+      }
 
-      case 'city':
-        if (!value.trim()) {
+      case 'city': {
+        if (!value) {
           return 'City is required.';
         }
+        if (!/^[a-zA-Z\s.-]+$/.test(value)) {
+          return 'City name should only contain letters, spaces, dots, and hyphens.';
+        }
         return '';
+      }
 
-      case 'state':
-        if (!value) {
+      case 'state': {
+        if (!rawValue) {
           return 'Please select a state or union territory.';
         }
+        if (!INDIAN_STATES_AND_UTS.includes(rawValue)) {
+          return 'Please select a valid Indian State or Union Territory from the list.';
+        }
         return '';
+      }
 
-      case 'pinCode':
-        if (!value.trim()) {
+      case 'pinCode': {
+        if (!value) {
           return 'PIN code is required.';
         }
-        // Validates Indian 6-digit postal PIN code
-        if (!/^\d{6}$/.test(value.trim())) {
-          return 'PIN code must be exactly 6 numeric digits.';
+        // Standard Indian postal PIN code: 6 numeric digits, cannot start with 0
+        if (!/^[1-9][0-9]{5}$/.test(value)) {
+          return 'PIN code must be exactly 6 numeric digits (cannot start with 0).';
         }
         return '';
+      }
 
-      case 'accountType':
-        if (!value) {
+      case 'accountType': {
+        if (!rawValue) {
           return 'Please select an account type.';
         }
-        return '';
-
-      case 'branchName':
-        if (!value.trim()) {
-          return 'Branch name is required.';
+        const validAccountTypes = ['Savings Account', 'Current Account'];
+        if (!validAccountTypes.includes(rawValue)) {
+          return 'Please select a valid account type.';
         }
         return '';
+      }
+
+      case 'branchName': {
+        if (!value) {
+          return 'Branch name is required.';
+        }
+        if (value.length < 3) {
+          return 'Branch name must be at least 3 characters long.';
+        }
+        return '';
+      }
 
       case 'initialDeposit': {
         if (value === '' || value === null || value === undefined) {
           return 'Initial deposit amount is required.';
         }
-        const depositNum = Number(value);
+        // Enforce valid positive decimal currency format (up to 2 decimal places)
+        if (!/^\d+(\.\d{1,2})?$/.test(value)) {
+          return 'Please enter a valid numeric deposit amount (e.g., 5000 or 5000.50).';
+        }
+        const depositNum = parseFloat(value);
         if (isNaN(depositNum) || depositNum <= 0) {
           return 'Initial deposit must be a positive number greater than 0.';
+        }
+        if (depositNum > 100000000) {
+          return 'Deposit amount exceeds the maximum single online transaction limit (₹10,00,00,000).';
         }
         return '';
       }
@@ -204,13 +302,13 @@ function BankAccountForm() {
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    // Update form data state
+    // Controlled state update
     setFormData((prevData) => ({
       ...prevData,
       [name]: value
     }));
 
-    // If an error previously existed for this field, revalidate it to give immediate feedback
+    // Revalidate on change if error already exists (instant correction feedback)
     if (errors[name]) {
       const errorMessage = validateField(name, value);
       setErrors((prevErrors) => ({
@@ -221,8 +319,8 @@ function BankAccountForm() {
   };
 
   /**
-   * Handles input blur event (when user clicks or tabs out of an input).
-   * Validates the field immediately after interaction so the user knows if it's correct.
+   * Handles input blur event.
+   * Validates field on blur to provide immediate feedback once the user leaves the input.
    */
   const handleBlur = (e) => {
     const { name, value } = e.target;
@@ -254,36 +352,51 @@ function BankAccountForm() {
 
   /**
    * Handles form submission.
-   * Validates all fields, prevents page reload, and displays confirmation summary if valid.
+   * Validates all fields, sanitizes inputs, prevents page reload, and displays confirmation summary if valid.
    */
   const handleSubmit = (e) => {
-    // 1. Prevent default browser page refresh
+    // Prevent default browser page refresh
     e.preventDefault();
 
-    // 2. Run comprehensive validation across all fields
+    // Comprehensive validation across all fields
     const validationErrors = validateAllFields();
 
-    // 3. If errors exist, update error state and prevent submission
+    // If validation fails, focus the first invalid field for accessibility
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       setIsSubmitted(false);
       setSubmittedData(null);
 
-      // Focus on the first invalid field for better user accessibility
       const firstErrorField = Object.keys(validationErrors)[0];
       const element = document.getElementById(firstErrorField);
       if (element) {
-        element.focus();
+        element.focus({ preventScroll: false });
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
       return;
     }
 
-    // 4. If all validations pass, save a snapshot of submitted data and mark as submitted
+    // Sanitize and trim strings before storing the submitted snapshot
+    const sanitizedSnapshot = {
+      fullName: formData.fullName.trim(),
+      dob: formData.dob,
+      gender: formData.gender,
+      mobileNumber: formData.mobileNumber.trim(),
+      email: formData.email.trim(),
+      streetAddress: formData.streetAddress.trim(),
+      city: formData.city.trim(),
+      state: formData.state,
+      pinCode: formData.pinCode.trim(),
+      accountType: formData.accountType,
+      branchName: formData.branchName.trim(),
+      initialDeposit: String(parseFloat(formData.initialDeposit.trim()))
+    };
+
     setErrors({});
-    setSubmittedData({ ...formData });
+    setSubmittedData(sanitizedSnapshot);
     setIsSubmitted(true);
 
-    // Smooth scroll to the success message
+    // Smooth scroll to the confirmation banner
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -299,12 +412,14 @@ function BankAccountForm() {
   };
 
   /**
-   * Helper function to mask mobile number for customer privacy (e.g. XXXXXX7890).
+   * Helper function to mask mobile number for customer privacy (e.g. XXXXXX1234).
    * Displays only the last 4 digits.
    */
   const maskMobileNumber = (mobile) => {
-    if (!mobile || mobile.length < 4) return '••••••••••';
-    const lastFour = mobile.slice(-4);
+    if (!mobile) return '••••••••••';
+    const clean = mobile.trim();
+    if (clean.length < 4) return '••••••••••';
+    const lastFour = clean.slice(-4);
     return `XXXXXX${lastFour}`;
   };
 
@@ -353,8 +468,13 @@ function BankAccountForm() {
                 <span className="summary-value">{submittedData.fullName}</span>
               </div>
               <div className="summary-item">
-                <span className="summary-label">Date of Birth</span>
-                <span className="summary-value">{submittedData.dob}</span>
+                <span className="summary-label">Date of Birth & Age</span>
+                <span className="summary-value">
+                  {submittedData.dob}
+                  <span className="age-summary-badge">
+                    {calculateAge(submittedData.dob)} Years (18+ Verified)
+                  </span>
+                </span>
               </div>
               <div className="summary-item">
                 <span className="summary-label">Gender</span>
@@ -416,14 +536,14 @@ function BankAccountForm() {
               Personal Information
             </legend>
             <p className="section-hint">
-              Please enter your personal details exactly as they appear on your government-issued ID.
+              Please enter your personal details exactly as they appear on your government-issued ID. Applicants must be at least 18 years of age.
             </p>
 
             <div className="form-grid">
               {/* 1. Full Name */}
               <div className="form-group col-span-2">
                 <label htmlFor="fullName" className="field-label">
-                  Full Name <span className="required-star">*</span>
+                  Full Name <span className="required-star" aria-hidden="true">*</span>
                 </label>
                 <input
                   type="text"
@@ -434,7 +554,8 @@ function BankAccountForm() {
                   onBlur={handleBlur}
                   placeholder="e.g. Rajesh Kumar Sharma"
                   className={`field-input ${errors.fullName ? 'input-error' : ''}`}
-                  aria-invalid={!!errors.fullName}
+                  aria-required="true"
+                  aria-invalid={Boolean(errors.fullName)}
                   aria-describedby={errors.fullName ? 'fullName-error' : undefined}
                   required
                 />
@@ -447,20 +568,32 @@ function BankAccountForm() {
 
               {/* 2. Date of Birth */}
               <div className="form-group">
-                <label htmlFor="dob" className="field-label">
-                  Date of Birth <span className="required-star">*</span>
-                </label>
+                <div className="label-with-badge">
+                  <label htmlFor="dob" className="field-label">
+                    Date of Birth <span className="required-star" aria-hidden="true">*</span>
+                  </label>
+                  {/* Dynamic Age Badge */}
+                  {formData.dob && currentAge !== null && (
+                    <span
+                      id="dob-age-hint"
+                      className={`age-live-badge ${currentAge >= 18 ? 'age-valid' : 'age-invalid'}`}
+                    >
+                      Age: {currentAge < 0 ? 0 : currentAge} {currentAge >= 18 ? '(Eligible)' : '(Under 18)'}
+                    </span>
+                  )}
+                </div>
                 <input
                   type="date"
                   id="dob"
                   name="dob"
-                  max={todayDateString}
+                  max={maxAllowedDob}
                   value={formData.dob}
                   onChange={handleChange}
                   onBlur={handleBlur}
                   className={`field-input ${errors.dob ? 'input-error' : ''}`}
-                  aria-invalid={!!errors.dob}
-                  aria-describedby={errors.dob ? 'dob-error' : undefined}
+                  aria-required="true"
+                  aria-invalid={Boolean(errors.dob)}
+                  aria-describedby={errors.dob ? 'dob-error' : (formData.dob ? 'dob-age-hint' : undefined)}
                   required
                 />
                 {errors.dob && (
@@ -473,7 +606,7 @@ function BankAccountForm() {
               {/* 3. Gender */}
               <div className="form-group">
                 <label htmlFor="gender" className="field-label">
-                  Gender <span className="required-star">*</span>
+                  Gender <span className="required-star" aria-hidden="true">*</span>
                 </label>
                 <select
                   id="gender"
@@ -482,7 +615,8 @@ function BankAccountForm() {
                   onChange={handleChange}
                   onBlur={handleBlur}
                   className={`field-input ${errors.gender ? 'input-error' : ''}`}
-                  aria-invalid={!!errors.gender}
+                  aria-required="true"
+                  aria-invalid={Boolean(errors.gender)}
                   aria-describedby={errors.gender ? 'gender-error' : undefined}
                   required
                 >
@@ -502,10 +636,10 @@ function BankAccountForm() {
               {/* 4. Mobile Number */}
               <div className="form-group">
                 <label htmlFor="mobileNumber" className="field-label">
-                  Mobile Number <span className="required-star">*</span>
+                  Mobile Number <span className="required-star" aria-hidden="true">*</span>
                 </label>
                 <div className="input-prefix-wrapper">
-                  <span className="input-prefix">+91</span>
+                  <span className="input-prefix" aria-hidden="true">+91</span>
                   <input
                     type="tel"
                     id="mobileNumber"
@@ -516,7 +650,8 @@ function BankAccountForm() {
                     onBlur={handleBlur}
                     placeholder="9876543210"
                     className={`field-input has-prefix ${errors.mobileNumber ? 'input-error' : ''}`}
-                    aria-invalid={!!errors.mobileNumber}
+                    aria-required="true"
+                    aria-invalid={Boolean(errors.mobileNumber)}
                     aria-describedby={errors.mobileNumber ? 'mobileNumber-error' : undefined}
                     required
                   />
@@ -531,7 +666,7 @@ function BankAccountForm() {
               {/* 5. Email Address */}
               <div className="form-group">
                 <label htmlFor="email" className="field-label">
-                  Email Address <span className="required-star">*</span>
+                  Email Address <span className="required-star" aria-hidden="true">*</span>
                 </label>
                 <input
                   type="email"
@@ -542,7 +677,8 @@ function BankAccountForm() {
                   onBlur={handleBlur}
                   placeholder="rajesh.kumar@example.com"
                   className={`field-input ${errors.email ? 'input-error' : ''}`}
-                  aria-invalid={!!errors.email}
+                  aria-required="true"
+                  aria-invalid={Boolean(errors.email)}
                   aria-describedby={errors.email ? 'email-error' : undefined}
                   required
                 />
@@ -569,7 +705,7 @@ function BankAccountForm() {
               {/* 6. Door Number and Street */}
               <div className="form-group col-span-2">
                 <label htmlFor="streetAddress" className="field-label">
-                  Door Number and Street <span className="required-star">*</span>
+                  Door Number and Street <span className="required-star" aria-hidden="true">*</span>
                 </label>
                 <input
                   type="text"
@@ -580,7 +716,8 @@ function BankAccountForm() {
                   onBlur={handleBlur}
                   placeholder="Flat No. 402, Green Valley Apartments, MG Road"
                   className={`field-input ${errors.streetAddress ? 'input-error' : ''}`}
-                  aria-invalid={!!errors.streetAddress}
+                  aria-required="true"
+                  aria-invalid={Boolean(errors.streetAddress)}
                   aria-describedby={errors.streetAddress ? 'streetAddress-error' : undefined}
                   required
                 />
@@ -594,7 +731,7 @@ function BankAccountForm() {
               {/* 7. City */}
               <div className="form-group">
                 <label htmlFor="city" className="field-label">
-                  City <span className="required-star">*</span>
+                  City <span className="required-star" aria-hidden="true">*</span>
                 </label>
                 <input
                   type="text"
@@ -605,7 +742,8 @@ function BankAccountForm() {
                   onBlur={handleBlur}
                   placeholder="e.g. Bengaluru"
                   className={`field-input ${errors.city ? 'input-error' : ''}`}
-                  aria-invalid={!!errors.city}
+                  aria-required="true"
+                  aria-invalid={Boolean(errors.city)}
                   aria-describedby={errors.city ? 'city-error' : undefined}
                   required
                 />
@@ -619,7 +757,7 @@ function BankAccountForm() {
               {/* 8. State */}
               <div className="form-group">
                 <label htmlFor="state" className="field-label">
-                  State / Union Territory <span className="required-star">*</span>
+                  State / Union Territory <span className="required-star" aria-hidden="true">*</span>
                 </label>
                 <select
                   id="state"
@@ -628,7 +766,8 @@ function BankAccountForm() {
                   onChange={handleChange}
                   onBlur={handleBlur}
                   className={`field-input ${errors.state ? 'input-error' : ''}`}
-                  aria-invalid={!!errors.state}
+                  aria-required="true"
+                  aria-invalid={Boolean(errors.state)}
                   aria-describedby={errors.state ? 'state-error' : undefined}
                   required
                 >
@@ -649,7 +788,7 @@ function BankAccountForm() {
               {/* 9. PIN Code */}
               <div className="form-group">
                 <label htmlFor="pinCode" className="field-label">
-                  PIN Code <span className="required-star">*</span>
+                  PIN Code <span className="required-star" aria-hidden="true">*</span>
                 </label>
                 <input
                   type="text"
@@ -661,7 +800,8 @@ function BankAccountForm() {
                   onBlur={handleBlur}
                   placeholder="560001"
                   className={`field-input ${errors.pinCode ? 'input-error' : ''}`}
-                  aria-invalid={!!errors.pinCode}
+                  aria-required="true"
+                  aria-invalid={Boolean(errors.pinCode)}
                   aria-describedby={errors.pinCode ? 'pinCode-error' : undefined}
                   required
                 />
@@ -688,7 +828,7 @@ function BankAccountForm() {
               {/* 10. Account Type */}
               <div className="form-group">
                 <label htmlFor="accountType" className="field-label">
-                  Account Type <span className="required-star">*</span>
+                  Account Type <span className="required-star" aria-hidden="true">*</span>
                 </label>
                 <select
                   id="accountType"
@@ -697,7 +837,8 @@ function BankAccountForm() {
                   onChange={handleChange}
                   onBlur={handleBlur}
                   className={`field-input ${errors.accountType ? 'input-error' : ''}`}
-                  aria-invalid={!!errors.accountType}
+                  aria-required="true"
+                  aria-invalid={Boolean(errors.accountType)}
                   aria-describedby={errors.accountType ? 'accountType-error' : undefined}
                   required
                 >
@@ -715,7 +856,7 @@ function BankAccountForm() {
               {/* 11. Branch Name */}
               <div className="form-group">
                 <label htmlFor="branchName" className="field-label">
-                  Branch Name <span className="required-star">*</span>
+                  Branch Name <span className="required-star" aria-hidden="true">*</span>
                 </label>
                 <input
                   type="text"
@@ -726,7 +867,8 @@ function BankAccountForm() {
                   onBlur={handleBlur}
                   placeholder="e.g. Indiranagar Branch"
                   className={`field-input ${errors.branchName ? 'input-error' : ''}`}
-                  aria-invalid={!!errors.branchName}
+                  aria-required="true"
+                  aria-invalid={Boolean(errors.branchName)}
                   aria-describedby={errors.branchName ? 'branchName-error' : undefined}
                   required
                 />
@@ -740,10 +882,10 @@ function BankAccountForm() {
               {/* 12. Initial Deposit Amount */}
               <div className="form-group col-span-2">
                 <label htmlFor="initialDeposit" className="field-label">
-                  Initial Deposit Amount (₹) <span className="required-star">*</span>
+                  Initial Deposit Amount (₹) <span className="required-star" aria-hidden="true">*</span>
                 </label>
                 <div className="input-prefix-wrapper">
-                  <span className="input-prefix">₹</span>
+                  <span className="input-prefix" aria-hidden="true">₹</span>
                   <input
                     type="number"
                     id="initialDeposit"
@@ -755,7 +897,8 @@ function BankAccountForm() {
                     onBlur={handleBlur}
                     placeholder="e.g. 5000"
                     className={`field-input has-prefix ${errors.initialDeposit ? 'input-error' : ''}`}
-                    aria-invalid={!!errors.initialDeposit}
+                    aria-required="true"
+                    aria-invalid={Boolean(errors.initialDeposit)}
                     aria-describedby={errors.initialDeposit ? 'initialDeposit-error' : undefined}
                     required
                   />
