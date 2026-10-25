@@ -1,0 +1,522 @@
+/* ==========================================================================
+   Mariamman Indian Bank (MIB) Bank Account Opening Form Styling
+   ========================================================================== */
+
+/* Main App Layout */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   Header Section
+   -------------------------------------------------------------------------- */
+.bank-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid var(--border-light);
+  padding: 32px 20px 28px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.header-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-navy);
+}
+
+.brand-name {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-navy);
+  letter-spacing: -0.5px;
+}
+
+.brand-badge {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background-color: var(--accent-blue-light);
+  color: var(--accent-blue);
+  border: 1px solid var(--accent-blue-border);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.header-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--primary-navy-dark);
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.header-description {
+  max-width: 640px;
+  margin: 0 auto;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* --------------------------------------------------------------------------
+   Main Content & Card
+   -------------------------------------------------------------------------- */
+.main-content {
+  flex: 1;
+  padding: 36px 16px 48px;
+  display: flex;
+  justify-content: center;
+}
+
+.form-wrapper {
+  width: 100%;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.card-container {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 36px 32px;
+}
+
+/* --------------------------------------------------------------------------
+   Submission Banner & Confirmation Summary
+   -------------------------------------------------------------------------- */
+.submission-banner {
+  background-color: var(--success-bg);
+  border: 1.5px solid var(--success-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.banner-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.banner-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  background-color: var(--success-color);
+  color: #ffffff;
+  border-radius: 50%;
+  font-size: 1.25rem;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.banner-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--success-color);
+  margin-bottom: 4px;
+}
+
+.banner-subtitle {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.disclaimer-note {
+  background-color: #f8fafc;
+  border-left: 4px solid var(--accent-blue);
+  padding: 12px 14px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.summary-card {
+  background-color: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 20px;
+}
+
+.summary-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--primary-navy);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px 20px;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.summary-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-value {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.masked-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: monospace;
+  letter-spacing: 1px;
+}
+
+.privacy-badge {
+  font-family: var(--font-family);
+  font-size: 0.7rem;
+  background-color: var(--accent-blue-light);
+  color: var(--accent-blue);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  letter-spacing: normal;
+}
+
+.badge-account {
+  display: inline-block;
+  background-color: #f1f5f9;
+  color: var(--primary-navy);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.deposit-value {
+  color: var(--primary-navy);
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+/* --------------------------------------------------------------------------
+   Form Sections & Fieldsets
+   -------------------------------------------------------------------------- */
+.bank-form {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.form-section {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.section-legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--primary-navy);
+  width: 100%;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--accent-blue-light);
+  margin-bottom: 6px;
+}
+
+.section-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background-color: var(--primary-navy);
+  color: #ffffff;
+  border-radius: 50%;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.section-hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+/* --------------------------------------------------------------------------
+   Grid Layout for Form Fields
+   -------------------------------------------------------------------------- */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px 24px;
+}
+
+.col-span-2 {
+  grid-column: span 2;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.field-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 7px;
+}
+
+.required-star {
+  color: var(--error-color);
+  font-weight: bold;
+}
+
+/* --------------------------------------------------------------------------
+   Input, Select, and Textarea Controls
+   -------------------------------------------------------------------------- */
+.field-input {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  background-color: #ffffff;
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.field-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.field-input::placeholder {
+  color: #94a3b8;
+}
+
+select.field-input {
+  cursor: pointer;
+  appearance: auto;
+}
+
+/* Input with Prefix (e.g., +91 for mobile, ₹ for deposit) */
+.input-prefix-wrapper {
+  display: flex;
+  align-items: stretch;
+  border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background-color: #ffffff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  overflow: hidden;
+}
+
+.input-prefix-wrapper:focus-within {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.input-prefix {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  background-color: #f1f5f9;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-right: 1.5px solid var(--border-light);
+  user-select: none;
+}
+
+.field-input.has-prefix {
+  border: none;
+  border-radius: 0;
+  flex: 1;
+}
+
+.field-input.has-prefix:focus {
+  box-shadow: none;
+}
+
+/* Validation Error States */
+.field-input.input-error {
+  border-color: var(--error-color);
+  background-color: var(--error-bg);
+}
+
+.field-input.input-error:focus {
+  border-color: var(--error-color);
+  box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.15);
+}
+
+.input-prefix-wrapper:has(.input-error) {
+  border-color: var(--error-color);
+  background-color: var(--error-bg);
+}
+
+.input-prefix-wrapper:has(.input-error):focus-within {
+  border-color: var(--error-color);
+  box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.15);
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  margin-top: 5px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--error-color);
+  line-height: 1.4;
+}
+
+/* --------------------------------------------------------------------------
+   Action Buttons
+   -------------------------------------------------------------------------- */
+.form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-light);
+  margin-top: 8px;
+}
+
+.btn {
+  padding: 12px 24px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid transparent;
+}
+
+.btn-primary {
+  background-color: var(--primary-navy);
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-navy-dark);
+  box-shadow: 0 2px 8px rgba(15, 43, 92, 0.25);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+.btn-secondary {
+  background-color: #ffffff;
+  color: var(--text-secondary);
+  border-color: var(--border-light);
+}
+
+.btn-secondary:hover {
+  background-color: #f8fafc;
+  color: var(--text-primary);
+  border-color: #94a3b8;
+}
+
+.btn-secondary:active {
+  transform: translateY(1px);
+}
+
+/* --------------------------------------------------------------------------
+   Footer Section
+   -------------------------------------------------------------------------- */
+.bank-footer {
+  text-align: center;
+  padding: 24px 20px 32px;
+  border-top: 1px solid var(--border-light);
+  background-color: #ffffff;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive Layout (Mobile & Tablet Adjustments)
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .card-container {
+    padding: 28px 20px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .col-span-2 {
+    grid-column: span 1;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .form-actions {
+    flex-direction: column-reverse;
+    gap: 12px;
+  }
+
+  .btn {
+    width: 100%;
+  }
+
+  .header-title {
+    font-size: 1.5rem;
+  }
+}
