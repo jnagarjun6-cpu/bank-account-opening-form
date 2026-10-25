@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { calculateAge, getMaxAllowedDobString, parseLocalDate } from '../utils/dateUtils';
 
 // List of Indian States and Union Territories for the State dropdown
 const INDIAN_STATES_AND_UTS = [
@@ -73,8 +74,11 @@ function BankAccountForm() {
   // State to track if the form was successfully submitted
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  // Calculate today's date in YYYY-MM-DD format to prevent future DOB selection
-  const todayDateString = new Date().toISOString().split('T')[0];
+  // Calculate maximum allowed date of birth (18 years ago today)
+  const maxAllowedDob = getMaxAllowedDobString();
+
+  // Calculate live age for immediate eligibility feedback
+  const currentAge = calculateAge(formData.dob);
 
   /**
    * Validates a single field by name and value.
@@ -98,15 +102,29 @@ function BankAccountForm() {
         if (!value) {
           return 'Date of birth is required.';
         }
-        const selectedDate = new Date(value);
+        const selectedDate = parseLocalDate(value);
+        if (!selectedDate || isNaN(selectedDate.getTime())) {
+          return 'Please enter a valid date of birth.';
+        }
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
         if (selectedDate > today) {
           return 'Date of birth cannot be in the future.';
         }
-        if (selectedDate.getFullYear() < 1900) {
-          return 'Please enter a realistic date of birth.';
+        if (selectedDate.getTime() === today.getTime()) {
+          return 'Date of birth cannot be today.';
+        }
+
+        const age = calculateAge(value);
+        if (age === null || isNaN(age)) {
+          return 'Please enter a valid date of birth.';
+        }
+        if (age < 18) {
+          return `Applicant must be at least 18 years old to open an account (Current age: ${age < 0 ? 0 : age} years).`;
+        }
+        if (age > 120 || selectedDate.getFullYear() < 1900) {
+          return 'Please enter a realistic date of birth (maximum age is 120 years).';
         }
         return '';
       }
@@ -353,8 +371,13 @@ function BankAccountForm() {
                 <span className="summary-value">{submittedData.fullName}</span>
               </div>
               <div className="summary-item">
-                <span className="summary-label">Date of Birth</span>
-                <span className="summary-value">{submittedData.dob}</span>
+                <span className="summary-label">Date of Birth & Age</span>
+                <span className="summary-value">
+                  {submittedData.dob}
+                  <span className="age-summary-badge">
+                    {calculateAge(submittedData.dob)} Years (18+ Verified)
+                  </span>
+                </span>
               </div>
               <div className="summary-item">
                 <span className="summary-label">Gender</span>
@@ -447,20 +470,31 @@ function BankAccountForm() {
 
               {/* 2. Date of Birth */}
               <div className="form-group">
-                <label htmlFor="dob" className="field-label">
-                  Date of Birth <span className="required-star">*</span>
-                </label>
+                <div className="label-with-badge">
+                  <label htmlFor="dob" className="field-label">
+                    Date of Birth <span className="required-star">*</span>
+                  </label>
+                  {/* Live Age Eligibility Badge */}
+                  {formData.dob && currentAge !== null && (
+                    <span
+                      id="dob-age-hint"
+                      className={`age-live-badge ${currentAge >= 18 ? 'age-valid' : 'age-invalid'}`}
+                    >
+                      Age: {currentAge < 0 ? 0 : currentAge} {currentAge >= 18 ? '(Eligible)' : '(Under 18)'}
+                    </span>
+                  )}
+                </div>
                 <input
                   type="date"
                   id="dob"
                   name="dob"
-                  max={todayDateString}
+                  max={maxAllowedDob}
                   value={formData.dob}
                   onChange={handleChange}
                   onBlur={handleBlur}
                   className={`field-input ${errors.dob ? 'input-error' : ''}`}
                   aria-invalid={!!errors.dob}
-                  aria-describedby={errors.dob ? 'dob-error' : undefined}
+                  aria-describedby={errors.dob ? 'dob-error' : (formData.dob ? 'dob-age-hint' : undefined)}
                   required
                 />
                 {errors.dob && (
